@@ -59,8 +59,8 @@ var config = {
 | `nameSize`        | *Optional* Set title size (Name of the Pokemon), in pixels. 32 By default.
 | `flavorText`        | *Optional* Displays the flavor text (short description of the pokemon) from the official Pokedex. When more than one version is returned, picks first one matching the selected language
 | `ratingsFolder`     | *Optional* Folder with the personal rating CSVs (see below), relative to the module folder or as an absolute path. Default `"data"`
-| `ratingSymbols`     | *Optional* Symbol for each value of the `bewertung` column. Can be any text, emoji or HTML (e.g. Font Awesome `<i class="fa fa-heart"></i>`). Replaces the whole default list
-| `teamSymbol`        | *Optional* Symbol shown when the `team` column is filled. Default `"🏆"`
+| `ratingSymbols`     | *Optional* Symbol for each value of the `bewertung` column. Can be any text, emoji, HTML (e.g. Font Awesome `<i class="fa fa-heart"></i>`) or an image file (see `teamSymbol`). Replaces the whole default list
+| `teamSymbol`        | *Optional* Symbol shown when the `team` column is filled. Default `"images/Pokeball.png"`, a pokeball image from the module folder. Any value ending in `.png`, `.jpg`, `.gif`, `.svg` or `.webp` is shown as an image scaled to the size of the emojis, either a path inside the module folder or a full URL. Everything else is shown as text, e.g. `"🏆"`
 
 ## Command line
 
@@ -88,7 +88,7 @@ Use the `port` from your `config.js` if it isn't 8080. Other devices are only al
 
 Every CSV file in the `ratingsFolder` belongs to one person. The file name is shown as that person's label on the mirror, so `data/K.csv` shows up as **K**. Add or remove a file and restart the mirror to add or remove a person.
 
-Below the Pokemon each person who rated it is shown with their label, the symbol of their rating and the team symbol, e.g. **K** 💖 🏆 **A** 👍. Pokemon nobody rated show no extra row.
+Below the Pokemon each person who rated it is shown with their label, the symbol of their rating and the team symbol, e.g. **K** 💖 + pokeball image, **A** 👍. Pokemon nobody rated show no extra row.
 
 | Column      | Content
 |------------ |--------
@@ -129,7 +129,7 @@ var config = {
                     "4": "👍",
                     "5": "💖"
                 },
-                teamSymbol: "🏆"
+                teamSymbol: "images/Pokeball.png"
             }
         }
     ]

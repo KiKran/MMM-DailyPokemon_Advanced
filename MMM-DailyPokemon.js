@@ -28,7 +28,7 @@ Module.register("MMM-DailyPokemon", {
 			"4": "👍", //Mag ich
 			"5": "💖", //Mag ich sehr
 		},
-		teamSymbol: "🏆", //Shown when the "team" column is filled
+		teamSymbol: "images/Pokeball.png", //Shown when the "team" column is filled - image file or text/emoji like "🏆"
 	},
 
 	requiresVersion: "2.1.0", // Required version of MagicMirror
@@ -310,7 +310,7 @@ Module.register("MMM-DailyPokemon", {
 			label.innerHTML = person.label;
 			if(self.config.gbaMode) label.style.fontFamily = "'pokegb'";
 			personSpan.appendChild(label);
-			personSpan.insertAdjacentHTML("beforeend", symbols.join(" "));
+			personSpan.insertAdjacentHTML("beforeend", symbols.map(symbol => self.symbolHtml(symbol)).join(" "));
 			self.ratingsRow.appendChild(personSpan);
 		});
 	},
@@ -319,6 +319,12 @@ Module.register("MMM-DailyPokemon", {
 		var symbols = this.config.ratingSymbols;
 		var key = Object.keys(symbols).find(value => value.toLowerCase() === rating.toLowerCase());
 		return key ? symbols[key] : rating;
+	},
+
+	symbolHtml: function(symbol) { //Image files become a picture in text size (CSS .poke-rating-icon), everything else is shown as written
+		if(!/\.(png|jpe?g|gif|svg|webp)$/i.test(symbol)) return symbol;
+		var src = /^([a-z]+:|\/)/i.test(symbol) ? symbol : this.file(symbol); //"images/Pokeball.png" = file in the module folder, URLs stay as they are
+		return "<img class=\"poke-rating-icon\" src=\"" + src + "\" alt=\"\">";
 	},
 
 	getStyles: function() {

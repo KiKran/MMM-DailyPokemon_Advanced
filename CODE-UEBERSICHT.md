@@ -33,6 +33,7 @@ Bewertungen kommt zur Laufzeit aus dem Internet.
 | [translations/en.json](translations/en.json), [fr.json](translations/fr.json) | Dasselbe auf Englisch/Französisch. | ⭐ |
 | [translations/es.json](translations/es.json) | Spanisch – unvollständig und wird nicht geladen. | – |
 | [images/demo.png](images/demo.png) | Nur der Screenshot für die README. Wird vom Modul nicht benutzt. | – |
+| [images/Pokeball.png](images/Pokeball.png) | Pokéball-Bild für das Team-Symbol (`teamSymbol`). | ⭐ |
 | [README.md](README.md) | Anleitung + Liste aller Einstellungen (englisch). | ⭐ |
 | [package.json](package.json) | Enthält nur Entwickler-Werkzeuge. **Zum Betrieb wird nichts per `npm install` benötigt.** | – |
 
@@ -40,13 +41,15 @@ Bewertungen kommt zur Laufzeit aus dem Internet.
 
 ## 3. Wo liegen die Bilder?
 
-**Nicht im Repo.** Sie werden direkt aus dem Internet geladen:
+**Fast alle nicht im Repo.** Sie werden direkt aus dem Internet geladen. Nur der Pokéball fürs
+Team-Symbol liegt lokal in `images/`:
 
 | Was | Quelle | Stelle im Code |
 |---|---|---|
 | Pokémon-Bild | PokeAPI liefert die Adresse mit, z. B. `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png` | [MMM-DailyPokemon.js:186](MMM-DailyPokemon.js#L186) (`data.sprites.front_default`) |
 | Typ-Icons (Feuer, Wasser, …) | serebii.net: `https://serebii.net/pokedex-dp/type/<typ>.gif` (alter Diamant/Perl-Stil) | [MMM-DailyPokemon.js:193-219](MMM-DailyPokemon.js#L193-L219) |
-| Bewertungs-Symbole | Emojis, als Text in den Einstellungen (keine Bilddateien) | [MMM-DailyPokemon.js:24-31](MMM-DailyPokemon.js#L24-L31) |
+| Bewertungs-Symbole | Emojis, als Text in den Einstellungen | [MMM-DailyPokemon.js:24-31](MMM-DailyPokemon.js#L24-L31) |
+| Team-Symbol | lokal: `images/Pokeball.png`, per CSS auf Emoji-Größe skaliert (`.poke-rating-icon`). Jeder Symbol-Wert, der auf `.png`/`.jpg`/`.gif`/`.svg`/`.webp` endet, wird so als Bild gezeigt | `symbolHtml()` in [MMM-DailyPokemon.js](MMM-DailyPokemon.js) |
 | Schrift | lokal: `fonts/pokemon_font.ttf` | [MMM-DailyPokemon.css:12-15](MMM-DailyPokemon.css#L12-L15) |
 
 Gut zu wissen:
@@ -139,7 +142,7 @@ Spiegel in `~/MagicMirror/config/config.js`:
 | `flavorText` | `false` | Pokédex-Text anzeigen |
 | `ratingsFolder` | `"data"` | Ordner mit den Bewertungs-CSVs |
 | `ratingSymbols` | 1 💔 · 2 👎 · 3 😐 · 4 👍 · 5 💖 | Symbol je Wert der Spalte `bewertung` |
-| `teamSymbol` | 🏆 | Symbol, wenn die Spalte `team` ausgefüllt ist |
+| `teamSymbol` | `"images/Pokeball.png"` (Pokéball) | Symbol, wenn die Spalte `team` ausgefüllt ist. Bilddatei oder Text/Emoji wie `"🏆"` |
 
 Die Beschriftung der Werte-Tabelle richtet sich nach der **globalen** Sprache des Spiegels
 (`language` ganz oben in `config.js`), nicht nach der Modul-Einstellung.
@@ -242,7 +245,7 @@ teamSymbol: "⚔️"
 5. Die Datei auf den Pi in `~/MagicMirror/modules/MMM-DailyPokemon/data/` bringen
    (per `git push`/`git pull` oder z. B. WinSCP).
 
-Am Spiegel erscheint unter dem Pokémon z. B. **A** 👍 **K** 💖 🏆. Wer das Pokémon nicht
+Am Spiegel erscheint unter dem Pokémon z. B. **A** 👍 **K** 💖 + Pokéball. Wer das Pokémon nicht
 bewertet hat, wird nicht angezeigt; hat es niemand bewertet, fällt die Zeile ganz weg.
 Ein Tippfehler in `bewertung` wird als Text angezeigt, damit er auffällt.
 
