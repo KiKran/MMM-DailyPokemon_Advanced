@@ -104,3 +104,26 @@
 	font-weight: 800;
 	text-align: left;
 }
+
+#poke-ratings {
+	text-align: center;
+	font-size: 24px;
+	margin-top: 10px;
+}
+
+#poke-ratings:empty {
+	display: none;
+}
+
+.poke-rating {
+	display: inline-block;
+	margin: 0px 12px;
+	white-space: nowrap;
+}
+
+.poke-rating-label {
+	color: white;
+	font-size: 18px;
+	font-weight: bold;
+	margin-right: 6px;
+}

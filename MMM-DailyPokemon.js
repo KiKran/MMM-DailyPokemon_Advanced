@@ -12,7 +12,7 @@ Module.register("MMM-DailyPokemon", {
 		updateInterval: 86400000, //1 Day
 		grayscale: true,//Turns pokemon image and type images gray to match magic mirror styles
 		minPoke: 1, //Default to all pokemon
-		maxPoke: 802,//Highest number - 802 pokemon currently exist
+		maxPoke: "auto",//Highest number - "auto" asks PokeAPI how many pokemon currently exist
 		showType: true, //Shows type icons below pokemon's image
 		stats: true,  //Displays pokemon stat table
 		language: "en",
@@ -20,6 +20,15 @@ Module.register("MMM-DailyPokemon", {
 		gbaMode: true, //Changes font to GBA style
 		nameSize: 32, //Changes header size - px
 		flavorText: false,  //Displays flavor text for the pokemon
+		ratingsFolder: "data", //Folder with one CSV per person - the file name is shown as the person's label
+		ratingSymbols: { //Symbol for each value of the "bewertung" column
+			"1": "💔", //Mag ich gar nicht
+			"2": "👎", //Mag ich nicht
+			"3": "😐", //Neutral
+			"4": "👍", //Mag ich
+			"5": "💖", //Mag ich sehr
+		},
+		teamSymbol: "🏆", //Shown when the "team" column is filled
 	},
 
 	requiresVersion: "2.1.0", // Required version of MagicMirror
@@ -45,13 +54,27 @@ Module.register("MMM-DailyPokemon", {
 		header.id = "poke-header";
 
 		//wrapper.appendChild(header);
+		this.sendSocketNotification("LOAD_RATINGS", this.config.ratingsFolder);//Reloaded every time, so CSV changes show up with the next pokemon
 		this.getData(wrapper);//Sending the request
 		return wrapper;
 	},
 
 	getData: function(wrapper) { //Sends XHTTPRequest
 		var self = this;
-		var pokeNumber = Math.round(Math.random()*(this.config.maxPoke - this.config.minPoke) + this.config.minPoke);
+		var maxPoke = this.config.maxPoke;
+		if(maxPoke === "auto") {
+			if(!this.pokeCount) {//Ask PokeAPI once how many pokemon exist, then roll
+				fetch("https://pokeapi.co/api/v2/pokemon-species/?limit=1")
+					.then(response => response.json())
+					.then(data => { self.pokeCount = data.count || 1025; })
+					.catch(() => { self.pokeCount = 1025; })//PokeAPI not reachable - use the last known number
+					.then(() => self.getData(wrapper));
+				return;
+			}
+			maxPoke = this.pokeCount;
+		}
+		var pokeNumber = Math.round(Math.random()*(maxPoke - this.config.minPoke) + this.config.minPoke);
+		this.pokeNumber = pokeNumber;
 		var apiURL = "https://pokeapi.co/api/v2/pokemon/" + pokeNumber + "/";
 		var httpRequest = new XMLHttpRequest();
 
@@ -66,32 +89,27 @@ Module.register("MMM-DailyPokemon", {
 				Log.log(response);
 
 				if(self.config.genera){
-					response.genera.forEach(genera => {
-						if(genera.language.name == languageChosen){
-							var pokeSubName = document.getElementById("poke-subname");
-							pokeSubName.innerHTML = genera.genus
-						}
-					});
+					var genera = self.pickLanguage(response.genera);
+					if(genera){
+						var pokeSubName = document.getElementById("poke-subname");
+						pokeSubName.innerHTML = genera.genus
+					}
 				}
 
 				// Get Translated Name and Flavor Text
 				if(languageChosen){
-					response.names.forEach(nameObject => {
-						if(nameObject.language.name == languageChosen){
-							translatedName = nameObject.name;
-							var pokeName = document.getElementById("poke-name");
-							pokeName.innerHTML = translatedName.charAt(0).toUpperCase() + translatedName.slice(1) + " - #" + pokeNumber
-						}
-					});
+					var nameObject = self.pickLanguage(response.names);
+					if(nameObject){
+						translatedName = nameObject.name;
+						var pokeName = document.getElementById("poke-name");
+						pokeName.innerHTML = translatedName.charAt(0).toUpperCase() + translatedName.slice(1) + " - #" + pokeNumber
+					}
 
 					var flavorTextDisplay = document.getElementById("flavor-text");
+					// get first flavor text matching selected language
+					var flavorTextObj = self.pickLanguage(response.flavor_text_entries);
 
-					if (flavorTextDisplay) {
-						function checkLanguage(obj) {
-							return obj.language.name == languageChosen
-						}
-						// get first flavor text matching selected language
-						var flavorTextObj = response.flavor_text_entries.find(checkLanguage);
+					if (flavorTextDisplay && flavorTextObj) {
 						// remove carriage returns, newlines, form-feeds for clean display
 						var sanitizedText = flavorTextObj.flavor_text.replace(/\r\n/g, "")
 						sanitizedText = sanitizedText.replace(/\f/g, " ")
@@ -220,6 +238,12 @@ Module.register("MMM-DailyPokemon", {
 		}
 		wrapper.appendChild(flexWrapper);
 
+		this.ratingsRow = document.createElement("div");//Filled by showRatings once the CSVs are loaded
+		this.ratingsRow.id = "poke-ratings";
+		if(this.config.grayscale) this.ratingsRow.style.filter = "grayscale(100%)";
+		wrapper.appendChild(this.ratingsRow);
+		this.showRatings();
+
 		if (this.config.flavorText) {
 			var flavorTextWrapper = document.createElement("div");
 			flavorTextWrapper.id = "flavor-text-wrapper";
@@ -240,6 +264,50 @@ Module.register("MMM-DailyPokemon", {
 		}
 	},
 
+	pickLanguage: function(entries) { //Entry in the configured language, english if there is none
+		var language = this.config.language;
+		return entries.find(entry => entry.language.name == language)
+			|| entries.find(entry => entry.language.name == "en");
+	},
+
+	socketNotificationReceived: function(notification, payload) { //Ratings sent by node_helper.js
+		if(notification === "RATINGS_LOADED") {
+			this.ratings = payload;
+			this.showRatings();
+		}
+	},
+
+	showRatings: function() { //Label + symbols for every person who rated the current pokemon
+		if(!this.ratingsRow || !this.ratings) return;
+		var self = this;
+		this.ratingsRow.innerHTML = "";
+
+		this.ratings.forEach(person => {
+			var entry = person.entries[self.pokeNumber];
+			if(!entry) return;
+
+			var symbols = [];
+			if(entry.rating) symbols.push(self.ratingSymbol(entry.rating));
+			if(entry.team) symbols.push(self.config.teamSymbol);
+
+			var personSpan = document.createElement("span");
+			personSpan.className = "poke-rating";
+			var label = document.createElement("span");
+			label.className = "poke-rating-label";
+			label.innerHTML = person.label;
+			if(self.config.gbaMode) label.style.fontFamily = "'pokegb'";
+			personSpan.appendChild(label);
+			personSpan.insertAdjacentHTML("beforeend", symbols.join(" "));
+			self.ratingsRow.appendChild(personSpan);
+		});
+	},
+
+	ratingSymbol: function(rating) { //Unknown values are shown as written, so typos are easy to spot
+		var symbols = this.config.ratingSymbols;
+		var key = Object.keys(symbols).find(value => value.toLowerCase() === rating.toLowerCase());
+		return key ? symbols[key] : rating;
+	},
+
 	getStyles: function() {
 		return [this.file('MMM-DailyPokemon.css')]
 	},
@@ -247,6 +315,7 @@ Module.register("MMM-DailyPokemon", {
 	getTranslations: function() {
 		return {
 			en: "translations/en.json",
+			de: "translations/de.json",
 			fr: "translations/fr.json"
 		}
 	}
