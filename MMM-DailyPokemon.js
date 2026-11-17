@@ -225,18 +225,18 @@ Module.register("MMM-DailyPokemon", {
 			var statTable = document.createElement("table");
 			if(this.config.gbaMode) statTable.style.cssText = "font-family: 'pokegb'";
 
-			for(let i=5; i>=0; i--){//Inverted to list stats in right order
+			["hp", "attack", "defense", "special-attack", "special-defense", "speed"].forEach(name => {//Fixed order - PokeAPI already changed the order of data.stats once
+				let stat = data.stats.find(entry => entry.stat.name === name);
+				if(!stat) return;
 				let tr = document.createElement("tr");
 				let tdName = document.createElement("td");
 				let tdStat = document.createElement("td");
-
-				tdName.innerHTML = this.translate(data.stats[i].stat.name);
-				tdStat.innerHTML = data.stats[i].base_stat;
-
+				tdName.innerHTML = this.translate(name);
+				tdStat.innerHTML = stat.base_stat;
 				tr.appendChild(tdName);
 				tr.appendChild(tdStat);
 				statTable.appendChild(tr);
-			}
+			});
 
 			statWrapper.appendChild(statTable);
 			flexWrapper.appendChild(statWrapper);

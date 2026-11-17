@@ -203,6 +203,7 @@ teamSymbol: "⚔️"
 | 5 | `showType` hat keine Wirkung. | offen |
 | 6 | `es.json` ist unvollständig und wird nicht geladen. | offen |
 | 7 | Kleinkram: `statWrapper` ohne `var` (globale Variable), Überschrift „Daily Pokemon“ wird gebaut, aber nie eingefügt, `data.flavorTextDisplay` existiert nicht. | offen, harmlos |
+| 8 | Werte-Tabelle stand auf dem Kopf (INIT. oben, KP unten): Der Code drehte die Liste um, aber PokeAPI liefert inzwischen KP zuerst. Die Zahlen passten trotzdem zur Beschriftung. | ✅ feste Reihenfolge |
 
 **Deutsche Daten bei PokeAPI (stichprobenartig geprüft am 30.10.2026):**
 
