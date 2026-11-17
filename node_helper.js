@@ -2,6 +2,9 @@
  * Node Helper: MMM-DailyPokemon
  *
  * Reads the rating CSVs (one file per person) and sends them to the module in the browser.
+ * Also offers commands for the command line (see README):
+ *   curl http://localhost:8080/MMM-DailyPokemon/next               roll a new pokemon (optional ?nr=25)
+ *   curl "http://localhost:8080/MMM-DailyPokemon/interval?time=12h"  change the updateInterval
  *
  * MIT Licensed.
  */
@@ -11,8 +14,36 @@ const fs = require("fs");
 const path = require("path");
 
 const TEAM_YES = ["x", "ja", "j", "yes", "y", "1", "true", "wahr"]; //Values in the "team" column that count as yes
+const UNITS = { ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000 }; //Units for the interval command
+const MIN_INTERVAL = 10000; //10 seconds - protects PokeAPI from typos like time=10 (= 10 ms)
+const MAX_INTERVAL = 2147483647; //~24.8 days - larger values break setInterval (it would fire non-stop)
 
 module.exports = NodeHelper.create({
+	start: function() { //Commands for the command line
+		this.expressApp.get("/" + this.name + "/next", (req, res) => { //Optional ?nr=25 for a specific pokemon
+			var nr = parseInt(req.query.nr, 10);
+			this.sendSocketNotification("NEXT_POKEMON", nr > 0 ? nr : null);
+			res.send(nr > 0 ? "Loading pokemon #" + nr + "\n" : "Loading a new pokemon\n");
+		});
+
+		this.expressApp.get("/" + this.name + "/interval", (req, res) => { //?time=12h - keeps the current pokemon
+			var interval = this.parseDuration(req.query.time);
+			if(!(interval >= MIN_INTERVAL && interval <= MAX_INTERVAL)) {
+				res.status(400).send("Usage: /" + this.name + "/interval?time=12h (units s, m, h, d - without unit milliseconds), between 10s and 24d\n");
+				return;
+			}
+			var label = /[a-z]$/i.test(req.query.time) ? req.query.time : interval + " ms";
+			this.sendSocketNotification("SET_INTERVAL", interval);
+			res.send("Update interval set to " + label + ", the current pokemon stays until then\n");
+		});
+	},
+
+	parseDuration: function(text) { //"90s", "30m", "12h", "1d" or milliseconds like in config.js - null if invalid
+		var match = /^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d)?$/i.exec(String(text || "").trim());
+		if(!match) return null;
+		return Math.round(parseFloat(match[1]) * UNITS[(match[2] || "ms").toLowerCase()]);
+	},
+
 	socketNotificationReceived: function(notification, payload) {
 		if(notification === "LOAD_RATINGS") {
 			this.sendSocketNotification("RATINGS_LOADED", this.loadRatings(payload));

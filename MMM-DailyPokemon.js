@@ -34,9 +34,13 @@ Module.register("MMM-DailyPokemon", {
 	requiresVersion: "2.1.0", // Required version of MagicMirror
 
 	start: function() { //Setting up interval for refresh
-		var self = this;
+		this.startTimer();
+	},
 
-		setInterval(function() {
+	startTimer: function() { //(Re)starts the countdown to the next pokemon - also when the interval is changed from the command line
+		var self = this;
+		clearInterval(this.timer);
+		this.timer = setInterval(function() {
 			self.updateDom();
 		}, this.config.updateInterval);
 	},
@@ -73,7 +77,8 @@ Module.register("MMM-DailyPokemon", {
 			}
 			maxPoke = this.pokeCount;
 		}
-		var pokeNumber = Math.round(Math.random()*(maxPoke - this.config.minPoke) + this.config.minPoke);
+		var pokeNumber = this.requestedNumber || Math.round(Math.random()*(maxPoke - this.config.minPoke) + this.config.minPoke);//Number from the command line, otherwise random
+		this.requestedNumber = null;
 		this.pokeNumber = pokeNumber;
 		var apiURL = "https://pokeapi.co/api/v2/pokemon/" + pokeNumber + "/";
 		var httpRequest = new XMLHttpRequest();
@@ -270,10 +275,18 @@ Module.register("MMM-DailyPokemon", {
 			|| entries.find(entry => entry.language.name == "en");
 	},
 
-	socketNotificationReceived: function(notification, payload) { //Ratings sent by node_helper.js
+	socketNotificationReceived: function(notification, payload) { //Messages from node_helper.js
 		if(notification === "RATINGS_LOADED") {
 			this.ratings = payload;
 			this.showRatings();
+		}
+		if(notification === "NEXT_POKEMON") { //Command line: curl http://localhost:8080/MMM-DailyPokemon/next
+			this.requestedNumber = payload; //null = random
+			this.updateDom(); //The timer keeps running, the next automatic change comes at the usual time
+		}
+		if(notification === "SET_INTERVAL") { //Command line: curl "http://localhost:8080/MMM-DailyPokemon/interval?time=12h"
+			this.config.updateInterval = payload;
+			this.startTimer(); //Counts from now, the current pokemon stays
 		}
 	},
 

@@ -14,7 +14,7 @@ To install, clone this repo into the `~/MagicMirror/modules` directory. The fold
 
 ```bash
 cd ~/MagicMirror/modules
-git clone https://github.com/KiKran/MMM-DailyPokemon_Advanced MMM-DailyPokemon^
+git clone https://github.com/KiKran/MMM-DailyPokemon_Advanced MMM-DailyPokemon
 cd MMM-DailyPokemon
 ```
 
@@ -47,7 +47,7 @@ var config = {
 
 | Option           | Description
 |----------------- |-----------
-| `updateInterval` | *Optional* How frequently you want it to update. Defaulted to once a day
+| `updateInterval` | *Optional* How frequently you want it to update, in milliseconds. Defaulted to once a day. Can also be changed from the [command line](#command-line)
 | `showType`       | *Optional* Displays the Pokemon's type
 | `grayscale`      | *Optional* Makes all images black and white to fit Mirror themes
 | `minPoke`        | *Optional* Start of your range. MUST be at least 1.
@@ -61,6 +61,28 @@ var config = {
 | `ratingsFolder`     | *Optional* Folder with the personal rating CSVs (see below), relative to the module folder or as an absolute path. Default `"data"`
 | `ratingSymbols`     | *Optional* Symbol for each value of the `bewertung` column. Can be any text, emoji or HTML (e.g. Font Awesome `<i class="fa fa-heart"></i>`). Replaces the whole default list
 | `teamSymbol`        | *Optional* Symbol shown when the `team` column is filled. Default `"🏆"`
+
+## Command line
+
+Run these on the mirror (e.g. via SSH).
+
+### New Pokemon
+
+```bash
+curl http://localhost:8080/MMM-DailyPokemon/next
+```
+
+A new Pokemon is rolled right away. The timer isn't touched, so the next automatic change still comes at the usual time. Add `?nr=25` to show a specific Pokemon, e.g. to check your ratings: `curl "http://localhost:8080/MMM-DailyPokemon/next?nr=25"`.
+
+### Change the update interval
+
+```bash
+curl "http://localhost:8080/MMM-DailyPokemon/interval?time=12h"
+```
+
+The current Pokemon stays and the next one comes 12 hours from now, then every 12 hours. Units are `s`, `m`, `h` and `d`. A number without a unit is in milliseconds, like in `config.js`. Allowed are 10 seconds up to 24 days. The change lasts until MagicMirror restarts, then the `updateInterval` from `config.js` applies again.
+
+Use the `port` from your `config.js` if it isn't 8080. Other devices are only allowed if their IP is in the `ipWhitelist` of `config.js`. Keep the quotes around URLs with `?`, so the shell doesn't touch them.
 
 ## Personal ratings
 

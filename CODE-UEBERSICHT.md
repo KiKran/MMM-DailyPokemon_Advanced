@@ -44,15 +44,15 @@ Bewertungen kommt zur Laufzeit aus dem Internet.
 
 | Was | Quelle | Stelle im Code |
 |---|---|---|
-| Pokémon-Bild | PokeAPI liefert die Adresse mit, z. B. `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png` | [MMM-DailyPokemon.js:181](MMM-DailyPokemon.js#L181) (`data.sprites.front_default`) |
-| Typ-Icons (Feuer, Wasser, …) | serebii.net: `https://serebii.net/pokedex-dp/type/<typ>.gif` (alter Diamant/Perl-Stil) | [MMM-DailyPokemon.js:188-214](MMM-DailyPokemon.js#L188-L214) |
+| Pokémon-Bild | PokeAPI liefert die Adresse mit, z. B. `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png` | [MMM-DailyPokemon.js:186](MMM-DailyPokemon.js#L186) (`data.sprites.front_default`) |
+| Typ-Icons (Feuer, Wasser, …) | serebii.net: `https://serebii.net/pokedex-dp/type/<typ>.gif` (alter Diamant/Perl-Stil) | [MMM-DailyPokemon.js:193-219](MMM-DailyPokemon.js#L193-L219) |
 | Bewertungs-Symbole | Emojis, als Text in den Einstellungen (keine Bilddateien) | [MMM-DailyPokemon.js:24-31](MMM-DailyPokemon.js#L24-L31) |
 | Schrift | lokal: `fonts/pokemon_font.ttf` | [MMM-DailyPokemon.css:12-15](MMM-DailyPokemon.css#L12-L15) |
 
 Gut zu wissen:
 - Das Bild `front_default` ist ein kleines **96×96-Pixel-Sprite**, das per CSS auf 200 px
   hochgezogen wird (wirkt pixelig). PokeAPI bietet auch hochauflösende Varianten an, z. B.
-  `sprites.other["official-artwork"].front_default` – wäre eine einfache Änderung in Zeile 181.
+  `sprites.other["official-artwork"].front_default` – wäre eine einfache Änderung in Zeile 186.
 - Der Graustufen-Look kommt **nicht** aus den Bildern, sondern aus dem CSS-Filter
   `filter: grayscale(100%)`. Mit `grayscale: false` ist alles farbig, auch die Emojis.
 - Ohne Internet bleibt die Anzeige leer.
@@ -63,36 +63,42 @@ Gut zu wissen:
 
 ```
 MagicMirror startet das Modul
- ├─ start()                       Z. 36–42    Timer: alle `updateInterval` ms → Anzeige neu bauen
- └─ getDom()                      Z. 44–60    legt den leeren Rahmen <div id="poke-wrapper"> an
+ ├─ start() / startTimer()       Z. 36–46    Timer: alle `updateInterval` ms → Anzeige neu bauen
+ └─ getDom()                      Z. 48–64    legt den leeren Rahmen <div id="poke-wrapper"> an
      ├─ "LOAD_RATINGS" ─────────► node_helper.js liest data/*.csv
-     │                            ◄─ "RATINGS_LOADED" → socketNotificationReceived() Z. 273–278
-     └─ getData()                 Z. 62–143
-         ├─ "auto"?               Z. 64–75    einmalig bei PokeAPI fragen, wie viele Pokémon es gibt
-         ├─ Zufallsnummer         Z. 76       zwischen minPoke und maxPoke
-         ├─ Anfrage 1             Z. 78       pokeapi.co/api/v2/pokemon/<nr>
+     │                            ◄─ "RATINGS_LOADED" → socketNotificationReceived() Z. 278–291
+     └─ getData()                 Z. 66–148
+         ├─ "auto"?               Z. 68–79    einmalig bei PokeAPI fragen, wie viele Pokémon es gibt
+         ├─ Nummer                Z. 80       per Kommandozeile gewünscht, sonst Zufall zwischen minPoke und maxPoke
+         ├─ Anfrage 1             Z. 83       pokeapi.co/api/v2/pokemon/<nr>
          │   (Bild, Typen, Statuswerte, englischer Name)
-         │   └─ createContent()   Z. 145–265  baut Name, Bild, Typ-Icons, Werte, Bewertungszeile
-         └─ Anfrage 2             Z. 81       pokeapi.co/api/v2/pokemon-species/<nr>
+         │   └─ createContent()   Z. 150–270  baut Name, Bild, Typ-Icons, Werte, Bewertungszeile
+         └─ Anfrage 2             Z. 86       pokeapi.co/api/v2/pokemon-species/<nr>
              (Namen/Gattung/Pokédex-Text in allen Sprachen)
-             └─ Z. 86–125: ersetzt Name, Gattung, Text durch `language` – oder Englisch,
-                           falls es die Sprache nicht gibt (pickLanguage, Z. 267–271)
+             └─ Z. 91–130: ersetzt Name, Gattung, Text durch `language` – oder Englisch,
+                           falls es die Sprache nicht gibt (pickLanguage, Z. 272–276)
+
+Kommandozeile (Routen in node_helper.js start(), siehe README „Command line“):
+ ├─ curl http://localhost:8080/MMM-DailyPokemon/next[?nr=25]
+ │   └─ "NEXT_POKEMON" ──► updateDom()   neues Pokémon sofort, Timer läuft unverändert weiter
+ └─ curl "http://localhost:8080/MMM-DailyPokemon/interval?time=12h"
+     └─ "SET_INTERVAL" ──► startTimer() mit neuem Intervall   Pokémon bleibt, gilt bis zum Neustart
 ```
 
 Die Bewertungen und die Pokémon-Daten kommen unabhängig voneinander an. Wer zuletzt ankommt,
-ruft `showRatings()` ([Z. 280–303](MMM-DailyPokemon.js#L280-L303)) auf, die dann die Zeile füllt.
+ruft `showRatings()` ([Z. 293–316](MMM-DailyPokemon.js#L293-L316)) auf, die dann die Zeile füllt.
 
 Die wichtigsten Stellen in `createContent()`:
 
 | Zeilen | Baut … |
 |---|---|
-| [150–170](MMM-DailyPokemon.js#L150-L170) | Name + Nummer (`#poke-name`), Schriftgröße, GBA-Schrift |
-| [172–178](MMM-DailyPokemon.js#L172-L178) | leere Zeile für die Gattung (`#poke-subname`), wird von Anfrage 2 befüllt |
-| [180–186](MMM-DailyPokemon.js#L180-L186) | Pokémon-Bild |
-| [188–214](MMM-DailyPokemon.js#L188-L214) | Typ-Icons (1 oder 2) |
-| [217–238](MMM-DailyPokemon.js#L217-L238) | Werte-Tabelle (KP, Angriff, …) |
-| [241–245](MMM-DailyPokemon.js#L241-L245) | Bewertungszeile (`#poke-ratings`), wird von `showRatings()` befüllt |
-| [247–264](MMM-DailyPokemon.js#L247-L264) | Pokédex-Text (`#flavor-text`), wird von Anfrage 2 befüllt |
+| [155–175](MMM-DailyPokemon.js#L155-L175) | Name + Nummer (`#poke-name`), Schriftgröße, GBA-Schrift |
+| [177–183](MMM-DailyPokemon.js#L177-L183) | leere Zeile für die Gattung (`#poke-subname`), wird von Anfrage 2 befüllt |
+| [185–191](MMM-DailyPokemon.js#L185-L191) | Pokémon-Bild |
+| [193–219](MMM-DailyPokemon.js#L193-L219) | Typ-Icons (1 oder 2) |
+| [222–243](MMM-DailyPokemon.js#L222-L243) | Werte-Tabelle (KP, Angriff, …) |
+| [246–250](MMM-DailyPokemon.js#L246-L250) | Bewertungszeile (`#poke-ratings`), wird von `showRatings()` befüllt |
+| [252–269](MMM-DailyPokemon.js#L252-L269) | Pokédex-Text (`#flavor-text`), wird von Anfrage 2 befüllt |
 
 ### Mini-Glossar für Nicht-JavaScript-Leute
 
