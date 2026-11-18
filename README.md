@@ -64,6 +64,8 @@ var config = {
 | `ratingSeparator`   | *Optional* Symbol between two people in the ratings row. Default `"•"`, `""` for none
 | `ratingsPerRow`     | *Optional* Maximum number of people in one row of the ratings. More people are split into several rows as evenly as possible, e.g. 5 into 3 + 2. Default `4`. With `stats: false` the module is only half as wide, `2` fits better then
 | `newSymbol`         | *Optional* Shown at the top right of the Pokemon when it is on the mirror for the first time (see [Already seen Pokemon](#already-seen-pokemon)). Default `"✨"`, `""` to turn it off. Images work like for `teamSymbol`
+| `shinyChance`       | *Optional* Chance for a shiny Pokemon (different colors, like in the games): `200` (default) means 1 in 200. Only with `grayscale: false`, in gray a shiny looks like a normal one. `0` turns it off
+| `shinySymbol`       | *Optional* Shown at the top right when the Pokemon is shiny. Default `"⭐"`, `""` to turn it off. Images work like for `teamSymbol`
 
 ## Command line
 
@@ -75,7 +77,7 @@ Run these on the mirror (e.g. via SSH).
 curl http://localhost:8080/MMM-DailyPokemon/next
 ```
 
-A new Pokemon is rolled right away. The timer isn't touched, so the next automatic change still comes at the usual time. Add `?nr=25` to show a specific Pokemon, e.g. to check your ratings: `curl "http://localhost:8080/MMM-DailyPokemon/next?nr=25"`.
+A new Pokemon is rolled right away. The timer isn't touched, so the next automatic change still comes at the usual time. Add `?nr=25` to show a specific Pokemon, e.g. to check your ratings: `curl "http://localhost:8080/MMM-DailyPokemon/next?nr=25"`. Add `?shiny` (or `&shiny` after `nr`) to see it in its shiny colors: `curl "http://localhost:8080/MMM-DailyPokemon/next?nr=25&shiny"`.
 
 ### Change the update interval
 
@@ -117,13 +119,14 @@ The CSVs are read again whenever a new Pokemon is rolled. The default symbols ar
 The module remembers which Pokemon have already been on the mirror. The first time a Pokemon appears, it gets the `newSymbol` (✨) at the top right and a line in `already_seen.csv` in the `ratingsFolder`:
 
 ```csv
-nr;name;first_seen
-69;Knofensa;2026-11-18 14:30
+nr;name;first_seen;shiny
+69;Knofensa;2026-11-18 14:30;
+69;Knofensa;2027-02-03 07:00;yes
 ```
 
-Every Pokemon is listed only once, with the time of its first appearance. When it comes again, it has no ✨. Pokemon shown from the command line with `?nr=` count as seen as well. The name is in the configured `language`.
+Every Pokemon is listed once, with the time of its first appearance. When it comes again, it has no ✨. A shiny gets a line of its own with `yes` in the `shiny` column, even if the Pokemon was seen before. Only the first shiny of each Pokemon is listed. Pokemon shown from the command line with `?nr=` or `?shiny` count as well. The name is in the configured `language`.
 
-The file is created automatically. To make a Pokemon "new" again, delete its line, e.g. with Excel. Delete the whole file to start over. The ✨ setting only changes the display, the list is always kept.
+The file is created automatically. To make a Pokemon "new" again, delete its line, e.g. with Excel. Delete the whole file to start over. `newSymbol` and `shinySymbol` only change the display, the list is always kept.
 
 ## Default Configuration
 
@@ -156,7 +159,9 @@ var config = {
                 teamSymbol: "images/Pokeball.png",
                 ratingSeparator: "•",
                 ratingsPerRow: 4,
-                newSymbol: "✨"
+                newSymbol: "✨",
+                shinyChance: 200, //1 in 200
+                shinySymbol: "⭐"
             }
         }
     ]

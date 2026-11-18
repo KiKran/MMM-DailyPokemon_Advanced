@@ -48,16 +48,17 @@ Team-Symbol liegt lokal in `images/`:
 
 | Was | Quelle | Stelle im Code |
 |---|---|---|
-| Pokémon-Bild | PokeAPI liefert die Adresse mit, z. B. `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png` | [MMM-DailyPokemon.js:190](MMM-DailyPokemon.js#L190) (`data.sprites.front_default`) |
-| Typ-Icons (Feuer, Wasser, …) | serebii.net: `https://serebii.net/pokedex-dp/type/<typ>.gif` (alter Diamant/Perl-Stil) | [MMM-DailyPokemon.js:197-223](MMM-DailyPokemon.js#L197-L223) |
-| Bewertungs-Symbole, Trenner `•`, Neu-Symbol ✨ | Emojis/Text in den Einstellungen | [MMM-DailyPokemon.js:24-34](MMM-DailyPokemon.js#L24-L34) |
-| Team-Symbol | lokal: `images/Pokeball.png`, per CSS auf Emoji-Größe skaliert (`.poke-rating-icon`). Jeder Symbol-Wert, der auf `.png`/`.jpg`/`.gif`/`.svg`/`.webp` endet, wird so als Bild gezeigt | `symbolHtml()` in [MMM-DailyPokemon.js:366-370](MMM-DailyPokemon.js#L366-L370) |
+| Pokémon-Bild | PokeAPI liefert die Adresse mit, z. B. `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png` | [MMM-DailyPokemon.js:195](MMM-DailyPokemon.js#L195) (`data.sprites.front_default`) |
+| Shiny-Bild | ebenfalls von PokeAPI, `.../sprites/pokemon/shiny/25.png`, gibt es für alle 1025 | [MMM-DailyPokemon.js:195](MMM-DailyPokemon.js#L195) (`data.sprites.front_shiny`) |
+| Typ-Icons (Feuer, Wasser, …) | serebii.net: `https://serebii.net/pokedex-dp/type/<typ>.gif` (alter Diamant/Perl-Stil) | [MMM-DailyPokemon.js:202-228](MMM-DailyPokemon.js#L202-L228) |
+| Bewertungs-Symbole, Trenner `•`, Neu-Symbol ✨, Shiny-Symbol ⭐ | Emojis/Text in den Einstellungen | [MMM-DailyPokemon.js:24-36](MMM-DailyPokemon.js#L24-L36) |
+| Team-Symbol | lokal: `images/Pokeball.png`, per CSS auf Emoji-Größe skaliert (`.poke-rating-icon`). Jeder Symbol-Wert, der auf `.png`/`.jpg`/`.gif`/`.svg`/`.webp` endet, wird so als Bild gezeigt | `symbolHtml()` in [MMM-DailyPokemon.js:377-381](MMM-DailyPokemon.js#L377-L381) |
 | Schrift | lokal: `fonts/pokemon_font.ttf` | [MMM-DailyPokemon.css:12-15](MMM-DailyPokemon.css#L12-L15) |
 
 Gut zu wissen:
 - Das Bild `front_default` ist ein kleines **96×96-Pixel-Sprite**, das per CSS auf 200 px
   hochgezogen wird (wirkt pixelig). PokeAPI bietet auch hochauflösende Varianten an, z. B.
-  `sprites.other["official-artwork"].front_default` – wäre eine einfache Änderung in Zeile 190.
+  `sprites.other["official-artwork"].front_default` – wäre eine einfache Änderung in Zeile 195.
 - Der Graustufen-Look kommt **nicht** aus den Bildern, sondern aus dem CSS-Filter
   `filter: grayscale(100%)`. Mit `grayscale: false` ist alles farbig, auch die Emojis.
 - Ohne Internet bleibt die Anzeige leer.
@@ -68,32 +69,33 @@ Gut zu wissen:
 
 ```
 MagicMirror startet das Modul
- ├─ start() / startTimer()       Z. 39–50    Timer: alle `updateInterval` ms → Anzeige neu bauen
- └─ getDom()                      Z. 52–68    legt den leeren Rahmen <div id="poke-wrapper"> an
+ ├─ start() / startTimer()       Z. 41–52    Timer: alle `updateInterval` ms → Anzeige neu bauen
+ └─ getDom()                      Z. 54–70    legt den leeren Rahmen <div id="poke-wrapper"> an
      ├─ "LOAD_RATINGS" ─────────► node_helper.js liest data/*.csv (ohne already_seen.csv)
-     │                            ◄─ "RATINGS_LOADED" → socketNotificationReceived() Z. 287–305
-     └─ getData()                 Z. 70–152
-         ├─ "auto"?               Z. 72–83    einmalig bei PokeAPI fragen, wie viele Pokémon es gibt
-         ├─ Nummer                Z. 84       per Kommandozeile gewünscht, sonst Zufall zwischen minPoke und maxPoke
-         ├─ Anfrage 1             Z. 87       pokeapi.co/api/v2/pokemon/<nr>
-         │   (Bild, Typen, Statuswerte, englischer Name)
-         │   └─ createContent()   Z. 154–279  baut Name, Bild, ✨-Platz, Typ-Icons, Werte, Bewertungszeile
-         └─ Anfrage 2             Z. 90       pokeapi.co/api/v2/pokemon-species/<nr>
+     │                            ◄─ "RATINGS_LOADED" → socketNotificationReceived() Z. 296–315
+     └─ getData()                 Z. 72–157
+         ├─ "auto"?               Z. 74–85    einmalig bei PokeAPI fragen, wie viele Pokémon es gibt
+         ├─ Nummer                Z. 86       per Kommandozeile gewünscht, sonst Zufall zwischen minPoke und maxPoke
+         ├─ Shiny?                Z. 88       per Kommandozeile gewünscht, sonst 1 zu `shinyChance` (nur bei grayscale: false)
+         ├─ Anfrage 1             Z. 91       pokeapi.co/api/v2/pokemon/<nr>
+         │   (Bild, Shiny-Bild, Typen, Statuswerte, englischer Name)
+         │   └─ createContent()   Z. 159–288  baut Name, Bild, ✨/⭐-Platz, Typ-Icons, Werte, Bewertungszeile
+         └─ Anfrage 2             Z. 94       pokeapi.co/api/v2/pokemon-species/<nr>
              (Namen/Gattung/Pokédex-Text in allen Sprachen)
-             ├─ Z. 96–131: ersetzt Name, Gattung, Text durch `language` – oder Englisch,
-             │             falls es die Sprache nicht gibt (pickLanguage, Z. 281–285)
-             └─ markSeen()        Z. 307–317  "MARK_SEEN" ──► node_helper.js prüft/ergänzt data/already_seen.csv
+             ├─ Z. 100–135: ersetzt Name, Gattung, Text durch `language` – oder Englisch,
+             │              falls es die Sprache nicht gibt (pickLanguage, Z. 290–294)
+             └─ markSeen()        Z. 317–328  "MARK_SEEN" ──► node_helper.js prüft/ergänzt data/already_seen.csv
                                               ◄─ "SEEN_CHECKED" (neu ja/nein) → bei neu ✨ einsetzen
 
 Kommandozeile (Routen in node_helper.js start(), siehe README „Command line“):
- ├─ curl http://localhost:8080/MMM-DailyPokemon/next[?nr=25]
+ ├─ curl "http://localhost:8080/MMM-DailyPokemon/next[?nr=25&shiny]"
  │   └─ "NEXT_POKEMON" ──► updateDom()   neues Pokémon sofort, Timer läuft unverändert weiter
  └─ curl "http://localhost:8080/MMM-DailyPokemon/interval?time=12h"
      └─ "SET_INTERVAL" ──► startTimer() mit neuem Intervall   Pokémon bleibt, gilt bis zum Neustart
 ```
 
 Die Bewertungen und die Pokémon-Daten kommen unabhängig voneinander an. Wer zuletzt ankommt,
-ruft `showRatings()` ([Z. 319–341](MMM-DailyPokemon.js#L319-L341)) auf, die dann die Zeile füllt.
+ruft `showRatings()` ([Z. 330–352](MMM-DailyPokemon.js#L330-L352)) auf, die dann die Zeile füllt.
 Sie nimmt nur die Personen, die dieses Pokémon bewertet haben, teilt sie bei mehr als
 `ratingsPerRow` auf mehrere Zeilen auf und setzt zwischen zwei Personen einen Trenner `•`.
 Die Verteilung (eine Person mittig, sonst links bis rechts mit gleichen Abständen) macht das CSS:
@@ -103,14 +105,14 @@ Die wichtigsten Stellen in `createContent()`:
 
 | Zeilen | Baut … |
 |---|---|
-| [159–179](MMM-DailyPokemon.js#L159-L179) | Name + Nummer (`#poke-name`), Schriftgröße, GBA-Schrift |
-| [181–187](MMM-DailyPokemon.js#L181-L187) | leere Zeile für die Gattung (`#poke-subname`), wird von Anfrage 2 befüllt |
-| [189–195](MMM-DailyPokemon.js#L189-L195) | Pokémon-Bild |
-| [197–223](MMM-DailyPokemon.js#L197-L223) | Typ-Icons (1 oder 2) |
-| [225–228](MMM-DailyPokemon.js#L225-L228) | leerer Platz für das ✨ (`#poke-new`), wird bei neuen Pokémon befüllt |
-| [231–252](MMM-DailyPokemon.js#L231-L252) | Werte-Tabelle (KP, Angriff, …) |
-| [255–259](MMM-DailyPokemon.js#L255-L259) | Bewertungszeile (`#poke-ratings`), wird von `showRatings()` befüllt |
-| [261–278](MMM-DailyPokemon.js#L261-L278) | Pokédex-Text (`#flavor-text`), wird von Anfrage 2 befüllt |
+| [164–184](MMM-DailyPokemon.js#L164-L184) | Name + Nummer (`#poke-name`), Schriftgröße, GBA-Schrift |
+| [186–192](MMM-DailyPokemon.js#L186-L192) | leere Zeile für die Gattung (`#poke-subname`), wird von Anfrage 2 befüllt |
+| [194–200](MMM-DailyPokemon.js#L194-L200) | Pokémon-Bild, bei Shiny das Shiny-Bild |
+| [202–228](MMM-DailyPokemon.js#L202-L228) | Typ-Icons (1 oder 2) |
+| [230–237](MMM-DailyPokemon.js#L230-L237) | Symbole oben rechts (`#poke-badges`): ⭐ sofort bei Shiny, leerer Platz `#poke-new` für das ✨ bei neuen Pokémon |
+| [240–261](MMM-DailyPokemon.js#L240-L261) | Werte-Tabelle (KP, Angriff, …) |
+| [264–268](MMM-DailyPokemon.js#L264-L268) | Bewertungszeile (`#poke-ratings`), wird von `showRatings()` befüllt |
+| [270–287](MMM-DailyPokemon.js#L270-L287) | Pokédex-Text (`#flavor-text`), wird von Anfrage 2 befüllt |
 
 ### Mini-Glossar für Nicht-JavaScript-Leute
 
@@ -133,7 +135,7 @@ Die wichtigsten Stellen in `createContent()`:
 
 ## 5. Einstellungen
 
-Definiert in [MMM-DailyPokemon.js:11-35](MMM-DailyPokemon.js#L11-L35), gesetzt werden sie auf dem
+Definiert in [MMM-DailyPokemon.js:11-37](MMM-DailyPokemon.js#L11-L37), gesetzt werden sie auf dem
 Spiegel in `~/MagicMirror/config/config.js`:
 
 | Option | Standard | Bedeutung |
@@ -155,6 +157,8 @@ Spiegel in `~/MagicMirror/config/config.js`:
 | `ratingSeparator` | `"•"` | Trenner zwischen zwei Personen in der Bewertungszeile, `""` = keiner |
 | `ratingsPerRow` | `4` | Höchstens so viele Personen pro Zeile, mehr werden möglichst gleichmäßig aufgeteilt (5 → 3 + 2). Bei `stats: false` passt `2` besser |
 | `newSymbol` | `"✨"` | Oben rechts am Pokémon, wenn es zum ersten Mal auf dem Spiegel ist. `""` = aus (die Liste wird trotzdem geführt) |
+| `shinyChance` | `200` | 1 zu 200, dass das Pokémon in Shiny-Farben erscheint. Nur bei `grayscale: false`, in Grau sähe man keinen Unterschied. `0` = aus |
+| `shinySymbol` | `"⭐"` | Oben rechts, wenn das Pokémon shiny ist. `""` = aus (geloggt wird trotzdem) |
 
 Die Beschriftung der Werte-Tabelle richtet sich nach der **globalen** Sprache des Spiegels
 (`language` ganz oben in `config.js`), nicht nach der Modul-Einstellung.
@@ -290,17 +294,24 @@ in der eingestellten Sprache da ist. Der node_helper
 
 - **Nummer noch nicht drin:** neue Zeile anhängen, Antwort „neu“ → ✨ oben rechts am Pokémon.
 - **Schon drin:** nichts ändern, kein ✨.
+- **Shiny:** bekommt eine eigene Zeile mit `shiny` = `yes`, auch wenn das Pokémon normal schon
+  gesehen wurde. Pro Pokémon wird nur das erste Shiny eingetragen. Das ⭐ zeigt der Browser
+  direkt an, dafür braucht er den node_helper nicht.
 
 ```csv
-nr;name;first_seen
-69;Knofensa;2026-11-18 14:30
+nr;name;first_seen;shiny
+69;Knofensa;2026-11-18 14:30;
+69;Knofensa;2027-02-03 07:00;yes
 ```
 
-- Gezählt wird jedes Pokémon, das auf dem Spiegel war, auch per `?nr=` von der Kommandozeile.
+Ist ein Pokémon beim allerersten Auftritt shiny, steht nur die Shiny-Zeile drin. Es bekommt ✨
+und ⭐, und wenn es später normal kommt, ist es nicht mehr neu.
+
+- Gezählt wird jedes Pokémon, das auf dem Spiegel war, auch per `?nr=` bzw. `?shiny` von der Kommandozeile.
   Soll eines wieder „neu“ sein: Zeile löschen (Excel geht, auch als ANSI gespeichert).
   Ganze Datei löschen = alles wieder neu.
 - Die Datei wird beim ersten Pokémon automatisch angelegt (UTF-8 mit BOM, damit Excel Umlaute
   richtig zeigt). Sie liegt im `ratingsFolder`, zählt aber nicht als Person.
 - Die Antwort geht genau an das Pokémon, für das gefragt wurde. Wird zwischendurch schon das
   nächste gewürfelt oder schaut ein zweiter Browser auf den Spiegel, landet kein ✨ am falschen Pokémon.
-- Position und Größe des ✨: `#poke-new` in [MMM-DailyPokemon.css](MMM-DailyPokemon.css).
+- Position und Größe von ✨ und ⭐: `#poke-badges` in [MMM-DailyPokemon.css](MMM-DailyPokemon.css).

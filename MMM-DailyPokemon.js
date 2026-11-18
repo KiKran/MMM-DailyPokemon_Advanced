@@ -32,6 +32,8 @@ Module.register("MMM-DailyPokemon", {
 		ratingSeparator: "•", //Between two people in the ratings row - "" for none
 		ratingsPerRow: 4, //More people are split into several rows, as even as possible (e.g. 5 -> 3 + 2)
 		newSymbol: "✨", //Shown above the picture when a pokemon is on the mirror for the first time - "" to turn off
+		shinyChance: 200, //1 in 200 pokemon is shown in its shiny colors - only with grayscale: false (no difference in gray), 0 to turn off
+		shinySymbol: "⭐", //Shown at the top right when the pokemon is shiny - "" to turn off
 	},
 
 	requiresVersion: "2.1.0", // Required version of MagicMirror
@@ -83,6 +85,8 @@ Module.register("MMM-DailyPokemon", {
 		}
 		var pokeNumber = this.requestedNumber || Math.round(Math.random()*(maxPoke - this.config.minPoke) + this.config.minPoke);//Number from the command line, otherwise random
 		this.requestedNumber = null;
+		var shiny = this.requestedShiny || (!this.config.grayscale && this.config.shinyChance > 0 && Math.random() * this.config.shinyChance < 1);
+		this.requestedShiny = false;
 		this.pokeNumber = pokeNumber;
 		var apiURL = "https://pokeapi.co/api/v2/pokemon/" + pokeNumber + "/";
 		var httpRequest = new XMLHttpRequest();
@@ -129,7 +133,7 @@ Module.register("MMM-DailyPokemon", {
 					}
 				}
 			}
-			self.markSeen(pokeNumber, translatedName || englishName, wrapper); //Also when the species request failed - the english name is enough then
+			self.markSeen(pokeNumber, translatedName || englishName, shiny, wrapper); //Also when the species request failed - the english name is enough then
 		}
 
 		httpRequest.onreadystatechange = function() {
@@ -138,11 +142,12 @@ Module.register("MMM-DailyPokemon", {
 				var responsePokemon = JSON.parse(this.responseText);
 				Log.log(responsePokemon);
 				englishName = responsePokemon.name;
+				shiny = shiny && !!responsePokemon.sprites.front_shiny; //No shiny picture - shown and noted as a normal pokemon
 				languageHttpRequest.open("GET", languageApiURL, true);
 				languageHttpRequest.send();
 
 
-				self.createContent(responsePokemon, wrapper);
+				self.createContent(responsePokemon, wrapper, shiny);
 			} else {
 				return "Loading...";
 			}
@@ -151,7 +156,7 @@ Module.register("MMM-DailyPokemon", {
 		httpRequest.send();
 	},
 
-	createContent: function(data, wrapper) { //Creates the elements for display
+	createContent: function(data, wrapper, shiny) { //Creates the elements for display
 		var pokeWrapper = document.createElement("div");
 		pokeWrapper.id = "poke-info";
 		var flexWrapper = document.createElement("div");
@@ -187,7 +192,7 @@ Module.register("MMM-DailyPokemon", {
 		}
 
 		var pokePic = document.createElement("img");
-		pokePic.src = data.sprites.front_default;
+		pokePic.src = shiny ? data.sprites.front_shiny : data.sprites.front_default;
 		pokePic.id = "poke-pic";
 		if(this.config.grayscale) {
 			pokePic.id = "poke-pic-grayscale";
@@ -222,10 +227,14 @@ Module.register("MMM-DailyPokemon", {
 		}
 		pokeWrapper.appendChild(types);
 
+		var badges = document.createElement("span"); //Top right of the pokemon: newSymbol, shinySymbol in the corner
+		badges.id = "poke-badges";
+		if(this.config.grayscale) badges.style.filter = "grayscale(100%)";
 		var newBadge = document.createElement("span"); //Gets the newSymbol once node_helper.js reports the pokemon as new
 		newBadge.id = "poke-new";
-		if(this.config.grayscale) newBadge.style.filter = "grayscale(100%)";
-		pokeWrapper.appendChild(newBadge);
+		badges.appendChild(newBadge);
+		if(shiny && this.config.shinySymbol) badges.insertAdjacentHTML("beforeend", this.symbolHtml(this.config.shinySymbol));
+		pokeWrapper.appendChild(badges);
 		flexWrapper.appendChild(pokeWrapper);
 
 		statWrapper = document.createElement("div");
@@ -290,7 +299,8 @@ Module.register("MMM-DailyPokemon", {
 			this.showRatings();
 		}
 		if(notification === "NEXT_POKEMON") { //Command line: curl http://localhost:8080/MMM-DailyPokemon/next
-			this.requestedNumber = payload; //null = random
+			this.requestedNumber = payload.nr; //null = random
+			this.requestedShiny = payload.shiny; //?shiny - for testing, also in grayscale
 			this.updateDom(); //The timer keeps running, the next automatic change comes at the usual time
 		}
 		if(notification === "SET_INTERVAL") { //Command line: curl "http://localhost:8080/MMM-DailyPokemon/interval?time=12h"
@@ -304,7 +314,7 @@ Module.register("MMM-DailyPokemon", {
 		}
 	},
 
-	markSeen: function(nr, name, wrapper) { //node_helper.js notes the pokemon in already_seen.csv and answers whether it is new
+	markSeen: function(nr, name, shiny, wrapper) { //node_helper.js notes the pokemon (and shinies) in already_seen.csv and answers whether it is new
 		var request = nr + "-" + Math.random().toString(36).slice(2);
 		this.seenRequests[request] = wrapper; //The answer goes to this pokemon, even if a newer one was rolled in between
 		name = name || "";
@@ -312,6 +322,7 @@ Module.register("MMM-DailyPokemon", {
 			folder: this.config.ratingsFolder,
 			nr: nr,
 			name: name.charAt(0).toUpperCase() + name.slice(1),
+			shiny: !!shiny,
 			request: request
 		});
 	},

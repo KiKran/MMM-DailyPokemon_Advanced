@@ -106,13 +106,15 @@
 }
 
 #poke-info {
-	position: relative; /* Reference for #poke-new */
+	position: relative; /* Reference for #poke-badges */
 }
 
-#poke-new { /* newSymbol at the top right of the pokemon, below the name and genera (the picture itself is moved up by 50px) */
+#poke-badges { /* newSymbol and shinySymbol at the top right of the pokemon, below the name and genera (the picture itself is moved up by 50px) */
 	position: absolute;
 	top: 0px;
 	right: 6px;
+	display: flex;
+	gap: 2px;
 	font-size: 28px;
 	line-height: 1;
 }
