@@ -33,7 +33,7 @@ Module.register("MMM-DailyPokemon", {
 		ratingsPerRow: 4, //More people are split into several rows, as even as possible (e.g. 5 -> 3 + 2)
 		newSymbol: "✨", //Shown above the picture when a pokemon is on the mirror for the first time - "" to turn off
 		shinyChance: 200, //1 in 200 pokemon is shown in its shiny colors - only with grayscale: false (no difference in gray), 0 to turn off
-		shinySymbol: "⭐", //Shown at the top right when the pokemon is shiny - "" to turn off
+		shinySymbol: "⭐", //Shown at the top left when the pokemon is shiny - "" to turn off
 	},
 
 	requiresVersion: "2.1.0", // Required version of MagicMirror
@@ -227,14 +227,18 @@ Module.register("MMM-DailyPokemon", {
 		}
 		pokeWrapper.appendChild(types);
 
-		var badges = document.createElement("span"); //Top right of the pokemon: newSymbol, shinySymbol in the corner
-		badges.id = "poke-badges";
-		if(this.config.grayscale) badges.style.filter = "grayscale(100%)";
-		var newBadge = document.createElement("span"); //Gets the newSymbol once node_helper.js reports the pokemon as new
+		var newBadge = document.createElement("span"); //Top right - gets the newSymbol once node_helper.js reports the pokemon as new
 		newBadge.id = "poke-new";
-		badges.appendChild(newBadge);
-		if(shiny && this.config.shinySymbol) badges.insertAdjacentHTML("beforeend", this.symbolHtml(this.config.shinySymbol));
-		pokeWrapper.appendChild(badges);
+		if(this.config.grayscale) newBadge.style.filter = "grayscale(100%)";
+		pokeWrapper.appendChild(newBadge);
+
+		if(shiny && this.config.shinySymbol) { //Top left
+			var shinyBadge = document.createElement("span");
+			shinyBadge.id = "poke-shiny";
+			if(this.config.grayscale) shinyBadge.style.filter = "grayscale(100%)";
+			shinyBadge.innerHTML = this.symbolHtml(this.config.shinySymbol);
+			pokeWrapper.appendChild(shinyBadge);
+		}
 		flexWrapper.appendChild(pokeWrapper);
 
 		statWrapper = document.createElement("div");

@@ -65,7 +65,7 @@ var config = {
 | `ratingsPerRow`     | *Optional* Maximum number of people in one row of the ratings. More people are split into several rows as evenly as possible, e.g. 5 into 3 + 2. Default `4`. With `stats: false` the module is only half as wide, `2` fits better then
 | `newSymbol`         | *Optional* Shown at the top right of the Pokemon when it is on the mirror for the first time (see [Already seen Pokemon](#already-seen-pokemon)). Default `"✨"`, `""` to turn it off. Images work like for `teamSymbol`
 | `shinyChance`       | *Optional* Chance for a shiny Pokemon (different colors, like in the games): `200` (default) means 1 in 200. Only with `grayscale: false`, in gray a shiny looks like a normal one. `0` turns it off
-| `shinySymbol`       | *Optional* Shown at the top right when the Pokemon is shiny. Default `"⭐"`, `""` to turn it off. Images work like for `teamSymbol`
+| `shinySymbol`       | *Optional* Shown at the top left when the Pokemon is shiny. Default `"⭐"`, `""` to turn it off. Images work like for `teamSymbol`
 
 ## Command line
 
