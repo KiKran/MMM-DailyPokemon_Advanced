@@ -29,11 +29,15 @@ Module.register("MMM-DailyPokemon", {
 			"5": "💖", //Mag ich sehr
 		},
 		teamSymbol: "images/Pokeball.png", //Shown when the "team" column is filled - image file or text/emoji like "🏆"
+		ratingSeparator: "•", //Between two people in the ratings row - "" for none
+		ratingsPerRow: 4, //More people are split into several rows, as even as possible (e.g. 5 -> 3 + 2)
+		newSymbol: "✨", //Shown above the picture when a pokemon is on the mirror for the first time - "" to turn off
 	},
 
 	requiresVersion: "2.1.0", // Required version of MagicMirror
 
 	start: function() { //Setting up interval for refresh
+		this.seenRequests = {}; //Open questions to node_helper.js "is this pokemon new?" -> wrapper of that pokemon
 		this.startTimer();
 	},
 
@@ -86,10 +90,12 @@ Module.register("MMM-DailyPokemon", {
 		var languageApiURL = "https://pokeapi.co/api/v2/pokemon-species/" + pokeNumber + "/";
 		var languageHttpRequest = new XMLHttpRequest();
 		var translatedName;
+		var englishName;
 		var languageChosen = this.config.language;
 
 		languageHttpRequest.onreadystatechange = function() {
-			if(this.readyState == 4 && this.status == 200) {
+			if(this.readyState != 4) return;
+			if(this.status == 200) {
 				var response = JSON.parse(this.responseText);
 				Log.log(response);
 
@@ -123,10 +129,7 @@ Module.register("MMM-DailyPokemon", {
 					}
 				}
 			}
-			 else {
-				 return "Loading...";
-			 }
-
+			self.markSeen(pokeNumber, translatedName || englishName, wrapper); //Also when the species request failed - the english name is enough then
 		}
 
 		httpRequest.onreadystatechange = function() {
@@ -134,6 +137,7 @@ Module.register("MMM-DailyPokemon", {
 				console.log(JSON.parse(this.responseText));
 				var responsePokemon = JSON.parse(this.responseText);
 				Log.log(responsePokemon);
+				englishName = responsePokemon.name;
 				languageHttpRequest.open("GET", languageApiURL, true);
 				languageHttpRequest.send();
 
@@ -217,6 +221,11 @@ Module.register("MMM-DailyPokemon", {
 			types.appendChild(type2);
 		}
 		pokeWrapper.appendChild(types);
+
+		var newBadge = document.createElement("span"); //Gets the newSymbol once node_helper.js reports the pokemon as new
+		newBadge.id = "poke-new";
+		if(this.config.grayscale) newBadge.style.filter = "grayscale(100%)";
+		pokeWrapper.appendChild(newBadge);
 		flexWrapper.appendChild(pokeWrapper);
 
 		statWrapper = document.createElement("div");
@@ -288,31 +297,64 @@ Module.register("MMM-DailyPokemon", {
 			this.config.updateInterval = payload;
 			this.startTimer(); //Counts from now, the current pokemon stays
 		}
+		if(notification === "SEEN_CHECKED" && this.seenRequests[payload.request]) { //Answers for other browsers showing the mirror are ignored
+			var badge = this.seenRequests[payload.request].querySelector("#poke-new");
+			delete this.seenRequests[payload.request];
+			if(badge && payload.isNew && this.config.newSymbol) badge.innerHTML = this.symbolHtml(this.config.newSymbol);
+		}
 	},
 
-	showRatings: function() { //Label + symbols for every person who rated the current pokemon
+	markSeen: function(nr, name, wrapper) { //node_helper.js notes the pokemon in already_seen.csv and answers whether it is new
+		var request = nr + "-" + Math.random().toString(36).slice(2);
+		this.seenRequests[request] = wrapper; //The answer goes to this pokemon, even if a newer one was rolled in between
+		name = name || "";
+		this.sendSocketNotification("MARK_SEEN", {
+			folder: this.config.ratingsFolder,
+			nr: nr,
+			name: name.charAt(0).toUpperCase() + name.slice(1),
+			request: request
+		});
+	},
+
+	showRatings: function() { //Everyone who rated the current pokemon: 1 person centered, more spread from left to right
 		if(!this.ratingsRow || !this.ratings) return;
 		var self = this;
 		this.ratingsRow.innerHTML = "";
 
-		this.ratings.forEach(person => {
-			var entry = person.entries[self.pokeNumber];
-			if(!entry) return;
+		var people = this.ratings.filter(person => person.entries[self.pokeNumber]); //Only people with an entry take a place
+		var rowCount = Math.ceil(people.length / Math.max(1, this.config.ratingsPerRow));
+		var perRow = Math.ceil(people.length / rowCount); //Rows as even as possible, e.g. 5 people with 4 per row -> 3 + 2
+		for(var start = 0; start < people.length; start += perRow) {
+			var row = document.createElement("div");
+			row.className = "poke-ratings-line";
+			people.slice(start, start + perRow).forEach((person, index) => {
+				if(index > 0) { //Takes the free space between two people (CSS), so all gaps are equal and the separator sits in the middle
+					var separator = document.createElement("span");
+					separator.className = "poke-rating-separator";
+					separator.innerHTML = self.symbolHtml(self.config.ratingSeparator || "");
+					row.appendChild(separator);
+				}
+				row.appendChild(self.personElement(person));
+			});
+			this.ratingsRow.appendChild(row);
+		}
+	},
 
-			var symbols = [];
-			if(entry.rating) symbols.push(self.ratingSymbol(entry.rating));
-			if(entry.team) symbols.push(self.config.teamSymbol);
+	personElement: function(person) { //Label + rating symbol + team symbol of one person
+		var entry = person.entries[this.pokeNumber];
+		var symbols = [];
+		if(entry.rating) symbols.push(this.ratingSymbol(entry.rating));
+		if(entry.team) symbols.push(this.config.teamSymbol);
 
-			var personSpan = document.createElement("span");
-			personSpan.className = "poke-rating";
-			var label = document.createElement("span");
-			label.className = "poke-rating-label";
-			label.innerHTML = person.label;
-			if(self.config.gbaMode) label.style.fontFamily = "'pokegb'";
-			personSpan.appendChild(label);
-			personSpan.insertAdjacentHTML("beforeend", symbols.map(symbol => self.symbolHtml(symbol)).join(" "));
-			self.ratingsRow.appendChild(personSpan);
-		});
+		var personSpan = document.createElement("span");
+		personSpan.className = "poke-rating";
+		var label = document.createElement("span");
+		label.className = "poke-rating-label";
+		label.innerHTML = person.label;
+		if(this.config.gbaMode) label.style.fontFamily = "'pokegb'";
+		personSpan.appendChild(label);
+		personSpan.insertAdjacentHTML("beforeend", symbols.map(symbol => this.symbolHtml(symbol)).join(" "));
+		return personSpan;
 	},
 
 	ratingSymbol: function(rating) { //Unknown values are shown as written, so typos are easy to spot

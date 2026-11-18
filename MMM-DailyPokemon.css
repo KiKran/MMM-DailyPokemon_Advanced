@@ -105,8 +105,19 @@
 	text-align: left;
 }
 
+#poke-info {
+	position: relative; /* Reference for #poke-new */
+}
+
+#poke-new { /* newSymbol at the top right of the pokemon, below the name and genera (the picture itself is moved up by 50px) */
+	position: absolute;
+	top: 0px;
+	right: 6px;
+	font-size: 28px;
+	line-height: 1;
+}
+
 #poke-ratings {
-	text-align: center;
 	font-size: 24px;
 	margin-top: 10px;
 }
@@ -115,10 +126,26 @@
 	display: none;
 }
 
+.poke-ratings-line { /* One person centered - more: first left, last right, the others evenly in between */
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.poke-ratings-line + .poke-ratings-line {
+	margin-top: 6px;
+}
+
 .poke-rating {
-	display: inline-block;
-	margin: 0px 12px;
+	flex: none;
 	white-space: nowrap;
+}
+
+.poke-rating-separator { /* Grows into the free space between two people - equal gaps, separator symbol in the middle */
+	flex: 1 1 0px;
+	text-align: center;
+	font-size: 18px;
+	padding: 0px 6px;
 }
 
 .poke-rating-icon { /* Image symbols like the pokeball, scaled to the size of the emojis */

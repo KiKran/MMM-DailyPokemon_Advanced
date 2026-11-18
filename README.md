@@ -61,6 +61,9 @@ var config = {
 | `ratingsFolder`     | *Optional* Folder with the personal rating CSVs (see below), relative to the module folder or as an absolute path. Default `"data"`
 | `ratingSymbols`     | *Optional* Symbol for each value of the `bewertung` column. Can be any text, emoji, HTML (e.g. Font Awesome `<i class="fa fa-heart"></i>`) or an image file (see `teamSymbol`). Replaces the whole default list
 | `teamSymbol`        | *Optional* Symbol shown when the `team` column is filled. Default `"images/Pokeball.png"`, a pokeball image from the module folder. Any value ending in `.png`, `.jpg`, `.gif`, `.svg` or `.webp` is shown as an image scaled to the size of the emojis, either a path inside the module folder or a full URL. Everything else is shown as text, e.g. `"🏆"`
+| `ratingSeparator`   | *Optional* Symbol between two people in the ratings row. Default `"•"`, `""` for none
+| `ratingsPerRow`     | *Optional* Maximum number of people in one row of the ratings. More people are split into several rows as evenly as possible, e.g. 5 into 3 + 2. Default `4`. With `stats: false` the module is only half as wide, `2` fits better then
+| `newSymbol`         | *Optional* Shown at the top right of the Pokemon when it is on the mirror for the first time (see [Already seen Pokemon](#already-seen-pokemon)). Default `"✨"`, `""` to turn it off. Images work like for `teamSymbol`
 
 ## Command line
 
@@ -86,9 +89,17 @@ Use the `port` from your `config.js` if it isn't 8080. Other devices are only al
 
 ## Personal ratings
 
-Every CSV file in the `ratingsFolder` belongs to one person. The file name is shown as that person's label on the mirror, so `data/K.csv` shows up as **K**. Add or remove a file and restart the mirror to add or remove a person.
+Every CSV file in the `ratingsFolder` belongs to one person, except `already_seen.csv` (see below). The file name is shown as that person's label on the mirror, so `data/K.csv` shows up as **K**. Add or remove a file and restart the mirror to add or remove a person.
 
-Below the Pokemon each person who rated it is shown with their label, the symbol of their rating and the team symbol, e.g. **K** 💖 + pokeball image, **A** 👍. Pokemon nobody rated show no extra row.
+Below the Pokemon each person who rated it is shown with their label, the symbol of their rating and the team symbol, e.g. **K** 💖 + pokeball image. Only people who rated the current Pokemon take a place in the row:
+
+| People    | Layout
+|---------- |-------
+| 1         | centered
+| 2         | left and right, `•` in between
+| 3 or more | first on the left, last on the right, the others evenly in between, `•` in each gap. Above `ratingsPerRow` (default 4) the people are split into several rows
+
+Pokemon nobody rated show no extra row.
 
 | Column      | Content
 |------------ |--------
@@ -100,6 +111,19 @@ Below the Pokemon each person who rated it is shown with their label, the symbol
 `vorlage/bewertung-vorlage.csv` contains all Pokemon with their German names. Copy it into the folder, rename it (e.g. `data/K.csv`) and fill it in with Excel. `;` and `,` as separator as well as UTF-8 and ANSI encoding work. To update the template when new Pokemon are released, run `node vorlage/vorlage-erstellen.js`.
 
 The CSVs are read again whenever a new Pokemon is rolled. The default symbols are emoji. If they show up as boxes on a Raspberry Pi, install an emoji font: `sudo apt install fonts-noto-color-emoji`.
+
+## Already seen Pokemon
+
+The module remembers which Pokemon have already been on the mirror. The first time a Pokemon appears, it gets the `newSymbol` (✨) at the top right and a line in `already_seen.csv` in the `ratingsFolder`:
+
+```csv
+nr;name;first_seen
+69;Knofensa;2026-11-18 14:30
+```
+
+Every Pokemon is listed only once, with the time of its first appearance. When it comes again, it has no ✨. Pokemon shown from the command line with `?nr=` count as seen as well. The name is in the configured `language`.
+
+The file is created automatically. To make a Pokemon "new" again, delete its line, e.g. with Excel. Delete the whole file to start over. The ✨ setting only changes the display, the list is always kept.
 
 ## Default Configuration
 
@@ -129,7 +153,10 @@ var config = {
                     "4": "👍",
                     "5": "💖"
                 },
-                teamSymbol: "images/Pokeball.png"
+                teamSymbol: "images/Pokeball.png",
+                ratingSeparator: "•",
+                ratingsPerRow: 4,
+                newSymbol: "✨"
             }
         }
     ]

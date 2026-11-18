@@ -1,7 +1,8 @@
 # MMM-DailyPokemon_Advanced – Code-Übersicht (KI based)
 
-Stand: 30.10.2026 · Fork von [NolanKingdon/MMM-DailyPokemon](https://github.com/NolanKingdon/MMM-DailyPokemon),
-erweitert um automatische Pokémon-Anzahl, englische Ersatztexte und persönliche Bewertungen.
+Stand: 18.11.2026 · Fork von [NolanKingdon/MMM-DailyPokemon](https://github.com/NolanKingdon/MMM-DailyPokemon),
+erweitert um automatische Pokémon-Anzahl, englische Ersatztexte, persönliche Bewertungen,
+Kommandozeilen-Befehle und eine Liste schon gesehener Pokémon (✨ für neue).
 
 ---
 
@@ -11,10 +12,11 @@ Beim Start würfelt das Modul eine Pokédex-Nummer zwischen `minPoke` und `maxPo
 dazu live die Daten von der kostenlosen [PokeAPI](https://pokeapi.co/) und baut daraus die
 Anzeige: Name + Nummer, Gattung („Samen-Pokémon“), Bild, Typ-Icons, Statuswerte, darunter
 eure Bewertungen und optional den Pokédex-Text. Nach `updateInterval` (Standard: 24 h) und
-bei jedem Neustart wird neu gewürfelt.
+bei jedem Neustart wird neu gewürfelt. Ist ein Pokémon zum ersten Mal auf dem Spiegel,
+bekommt es oben rechts ein ✨ und landet in `data/already_seen.csv`.
 
 **Es gibt keine lokale Pokémon-Liste und keine lokalen Pokémon-Bilder.** Alles außer euren
-Bewertungen kommt zur Laufzeit aus dem Internet.
+Bewertungen und der Gesehen-Liste kommt zur Laufzeit aus dem Internet.
 
 ---
 
@@ -23,9 +25,9 @@ Bewertungen kommt zur Laufzeit aus dem Internet.
 | Pfad | Was ist das? | Wichtig? |
 |---|---|---|
 | [MMM-DailyPokemon.js](MMM-DailyPokemon.js) | **Das Modul im Browser.** Einstellungen, API-Abfragen, Aufbau der Anzeige. | ⭐⭐⭐ |
-| [node_helper.js](node_helper.js) | **Neu.** Läuft auf dem Pi (Node.js), liest die Bewertungs-CSVs und schickt sie an den Browser. | ⭐⭐ |
-| [MMM-DailyPokemon.css](MMM-DailyPokemon.css) | Aussehen: Größen, Positionen, Graustufen-Filter, GBA-Schrift, Bewertungszeile. | ⭐⭐ |
-| `data/` | **Eure Bewertungen**, eine CSV pro Person (Ordner selbst anlegen, siehe Abschnitt 8). | ⭐⭐ |
+| [node_helper.js](node_helper.js) | **Neu.** Läuft auf dem Pi (Node.js), liest die Bewertungs-CSVs und schickt sie an den Browser, führt die Gesehen-Liste, nimmt die Kommandozeilen-Befehle an. | ⭐⭐ |
+| [MMM-DailyPokemon.css](MMM-DailyPokemon.css) | Aussehen: Größen, Positionen, Graustufen-Filter, GBA-Schrift, Bewertungszeile, ✨. | ⭐⭐ |
+| `data/` | **Eure Bewertungen**, eine CSV pro Person (Ordner selbst anlegen, siehe Abschnitt 8). Dazu `already_seen.csv`, die das Modul selbst anlegt (Abschnitt 9). Steht in `.gitignore`. | ⭐⭐ |
 | [vorlage/bewertung-vorlage.csv](vorlage/bewertung-vorlage.csv) | **Neu.** Leere Vorlage mit allen 1025 Pokémon (Nummer + deutscher Name). | ⭐ |
 | [vorlage/vorlage-erstellen.js](vorlage/vorlage-erstellen.js) | **Neu.** Erzeugt die Vorlage neu aus PokeAPI-Daten (z. B. wenn Gen 10 erscheint). | ⭐ |
 | [fonts/pokemon_font.ttf](fonts/pokemon_font.ttf) | Pixel-Schrift im Game-Boy-Stil (für `gbaMode`). | ⭐ |
@@ -46,16 +48,16 @@ Team-Symbol liegt lokal in `images/`:
 
 | Was | Quelle | Stelle im Code |
 |---|---|---|
-| Pokémon-Bild | PokeAPI liefert die Adresse mit, z. B. `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png` | [MMM-DailyPokemon.js:186](MMM-DailyPokemon.js#L186) (`data.sprites.front_default`) |
-| Typ-Icons (Feuer, Wasser, …) | serebii.net: `https://serebii.net/pokedex-dp/type/<typ>.gif` (alter Diamant/Perl-Stil) | [MMM-DailyPokemon.js:193-219](MMM-DailyPokemon.js#L193-L219) |
-| Bewertungs-Symbole | Emojis, als Text in den Einstellungen | [MMM-DailyPokemon.js:24-31](MMM-DailyPokemon.js#L24-L31) |
-| Team-Symbol | lokal: `images/Pokeball.png`, per CSS auf Emoji-Größe skaliert (`.poke-rating-icon`). Jeder Symbol-Wert, der auf `.png`/`.jpg`/`.gif`/`.svg`/`.webp` endet, wird so als Bild gezeigt | `symbolHtml()` in [MMM-DailyPokemon.js](MMM-DailyPokemon.js) |
+| Pokémon-Bild | PokeAPI liefert die Adresse mit, z. B. `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png` | [MMM-DailyPokemon.js:190](MMM-DailyPokemon.js#L190) (`data.sprites.front_default`) |
+| Typ-Icons (Feuer, Wasser, …) | serebii.net: `https://serebii.net/pokedex-dp/type/<typ>.gif` (alter Diamant/Perl-Stil) | [MMM-DailyPokemon.js:197-223](MMM-DailyPokemon.js#L197-L223) |
+| Bewertungs-Symbole, Trenner `•`, Neu-Symbol ✨ | Emojis/Text in den Einstellungen | [MMM-DailyPokemon.js:24-34](MMM-DailyPokemon.js#L24-L34) |
+| Team-Symbol | lokal: `images/Pokeball.png`, per CSS auf Emoji-Größe skaliert (`.poke-rating-icon`). Jeder Symbol-Wert, der auf `.png`/`.jpg`/`.gif`/`.svg`/`.webp` endet, wird so als Bild gezeigt | `symbolHtml()` in [MMM-DailyPokemon.js:366-370](MMM-DailyPokemon.js#L366-L370) |
 | Schrift | lokal: `fonts/pokemon_font.ttf` | [MMM-DailyPokemon.css:12-15](MMM-DailyPokemon.css#L12-L15) |
 
 Gut zu wissen:
 - Das Bild `front_default` ist ein kleines **96×96-Pixel-Sprite**, das per CSS auf 200 px
   hochgezogen wird (wirkt pixelig). PokeAPI bietet auch hochauflösende Varianten an, z. B.
-  `sprites.other["official-artwork"].front_default` – wäre eine einfache Änderung in Zeile 186.
+  `sprites.other["official-artwork"].front_default` – wäre eine einfache Änderung in Zeile 190.
 - Der Graustufen-Look kommt **nicht** aus den Bildern, sondern aus dem CSS-Filter
   `filter: grayscale(100%)`. Mit `grayscale: false` ist alles farbig, auch die Emojis.
 - Ohne Internet bleibt die Anzeige leer.
@@ -66,20 +68,22 @@ Gut zu wissen:
 
 ```
 MagicMirror startet das Modul
- ├─ start() / startTimer()       Z. 36–46    Timer: alle `updateInterval` ms → Anzeige neu bauen
- └─ getDom()                      Z. 48–64    legt den leeren Rahmen <div id="poke-wrapper"> an
-     ├─ "LOAD_RATINGS" ─────────► node_helper.js liest data/*.csv
-     │                            ◄─ "RATINGS_LOADED" → socketNotificationReceived() Z. 278–291
-     └─ getData()                 Z. 66–148
-         ├─ "auto"?               Z. 68–79    einmalig bei PokeAPI fragen, wie viele Pokémon es gibt
-         ├─ Nummer                Z. 80       per Kommandozeile gewünscht, sonst Zufall zwischen minPoke und maxPoke
-         ├─ Anfrage 1             Z. 83       pokeapi.co/api/v2/pokemon/<nr>
+ ├─ start() / startTimer()       Z. 39–50    Timer: alle `updateInterval` ms → Anzeige neu bauen
+ └─ getDom()                      Z. 52–68    legt den leeren Rahmen <div id="poke-wrapper"> an
+     ├─ "LOAD_RATINGS" ─────────► node_helper.js liest data/*.csv (ohne already_seen.csv)
+     │                            ◄─ "RATINGS_LOADED" → socketNotificationReceived() Z. 287–305
+     └─ getData()                 Z. 70–152
+         ├─ "auto"?               Z. 72–83    einmalig bei PokeAPI fragen, wie viele Pokémon es gibt
+         ├─ Nummer                Z. 84       per Kommandozeile gewünscht, sonst Zufall zwischen minPoke und maxPoke
+         ├─ Anfrage 1             Z. 87       pokeapi.co/api/v2/pokemon/<nr>
          │   (Bild, Typen, Statuswerte, englischer Name)
-         │   └─ createContent()   Z. 150–270  baut Name, Bild, Typ-Icons, Werte, Bewertungszeile
-         └─ Anfrage 2             Z. 86       pokeapi.co/api/v2/pokemon-species/<nr>
+         │   └─ createContent()   Z. 154–279  baut Name, Bild, ✨-Platz, Typ-Icons, Werte, Bewertungszeile
+         └─ Anfrage 2             Z. 90       pokeapi.co/api/v2/pokemon-species/<nr>
              (Namen/Gattung/Pokédex-Text in allen Sprachen)
-             └─ Z. 91–130: ersetzt Name, Gattung, Text durch `language` – oder Englisch,
-                           falls es die Sprache nicht gibt (pickLanguage, Z. 272–276)
+             ├─ Z. 96–131: ersetzt Name, Gattung, Text durch `language` – oder Englisch,
+             │             falls es die Sprache nicht gibt (pickLanguage, Z. 281–285)
+             └─ markSeen()        Z. 307–317  "MARK_SEEN" ──► node_helper.js prüft/ergänzt data/already_seen.csv
+                                              ◄─ "SEEN_CHECKED" (neu ja/nein) → bei neu ✨ einsetzen
 
 Kommandozeile (Routen in node_helper.js start(), siehe README „Command line“):
  ├─ curl http://localhost:8080/MMM-DailyPokemon/next[?nr=25]
@@ -89,19 +93,24 @@ Kommandozeile (Routen in node_helper.js start(), siehe README „Command line“
 ```
 
 Die Bewertungen und die Pokémon-Daten kommen unabhängig voneinander an. Wer zuletzt ankommt,
-ruft `showRatings()` ([Z. 293–316](MMM-DailyPokemon.js#L293-L316)) auf, die dann die Zeile füllt.
+ruft `showRatings()` ([Z. 319–341](MMM-DailyPokemon.js#L319-L341)) auf, die dann die Zeile füllt.
+Sie nimmt nur die Personen, die dieses Pokémon bewertet haben, teilt sie bei mehr als
+`ratingsPerRow` auf mehrere Zeilen auf und setzt zwischen zwei Personen einen Trenner `•`.
+Die Verteilung (eine Person mittig, sonst links bis rechts mit gleichen Abständen) macht das CSS:
+Der Trenner wächst in den freien Platz (`.poke-rating-separator`, `flex: 1`).
 
 Die wichtigsten Stellen in `createContent()`:
 
 | Zeilen | Baut … |
 |---|---|
-| [155–175](MMM-DailyPokemon.js#L155-L175) | Name + Nummer (`#poke-name`), Schriftgröße, GBA-Schrift |
-| [177–183](MMM-DailyPokemon.js#L177-L183) | leere Zeile für die Gattung (`#poke-subname`), wird von Anfrage 2 befüllt |
-| [185–191](MMM-DailyPokemon.js#L185-L191) | Pokémon-Bild |
-| [193–219](MMM-DailyPokemon.js#L193-L219) | Typ-Icons (1 oder 2) |
-| [222–243](MMM-DailyPokemon.js#L222-L243) | Werte-Tabelle (KP, Angriff, …) |
-| [246–250](MMM-DailyPokemon.js#L246-L250) | Bewertungszeile (`#poke-ratings`), wird von `showRatings()` befüllt |
-| [252–269](MMM-DailyPokemon.js#L252-L269) | Pokédex-Text (`#flavor-text`), wird von Anfrage 2 befüllt |
+| [159–179](MMM-DailyPokemon.js#L159-L179) | Name + Nummer (`#poke-name`), Schriftgröße, GBA-Schrift |
+| [181–187](MMM-DailyPokemon.js#L181-L187) | leere Zeile für die Gattung (`#poke-subname`), wird von Anfrage 2 befüllt |
+| [189–195](MMM-DailyPokemon.js#L189-L195) | Pokémon-Bild |
+| [197–223](MMM-DailyPokemon.js#L197-L223) | Typ-Icons (1 oder 2) |
+| [225–228](MMM-DailyPokemon.js#L225-L228) | leerer Platz für das ✨ (`#poke-new`), wird bei neuen Pokémon befüllt |
+| [231–252](MMM-DailyPokemon.js#L231-L252) | Werte-Tabelle (KP, Angriff, …) |
+| [255–259](MMM-DailyPokemon.js#L255-L259) | Bewertungszeile (`#poke-ratings`), wird von `showRatings()` befüllt |
+| [261–278](MMM-DailyPokemon.js#L261-L278) | Pokédex-Text (`#flavor-text`), wird von Anfrage 2 befüllt |
 
 ### Mini-Glossar für Nicht-JavaScript-Leute
 
@@ -124,7 +133,7 @@ Die wichtigsten Stellen in `createContent()`:
 
 ## 5. Einstellungen
 
-Definiert in [MMM-DailyPokemon.js:11-32](MMM-DailyPokemon.js#L11-L32), gesetzt werden sie auf dem
+Definiert in [MMM-DailyPokemon.js:11-35](MMM-DailyPokemon.js#L11-L35), gesetzt werden sie auf dem
 Spiegel in `~/MagicMirror/config/config.js`:
 
 | Option | Standard | Bedeutung |
@@ -143,6 +152,9 @@ Spiegel in `~/MagicMirror/config/config.js`:
 | `ratingsFolder` | `"data"` | Ordner mit den Bewertungs-CSVs |
 | `ratingSymbols` | 1 💔 · 2 👎 · 3 😐 · 4 👍 · 5 💖 | Symbol je Wert der Spalte `bewertung` |
 | `teamSymbol` | `"images/Pokeball.png"` (Pokéball) | Symbol, wenn die Spalte `team` ausgefüllt ist. Bilddatei oder Text/Emoji wie `"🏆"` |
+| `ratingSeparator` | `"•"` | Trenner zwischen zwei Personen in der Bewertungszeile, `""` = keiner |
+| `ratingsPerRow` | `4` | Höchstens so viele Personen pro Zeile, mehr werden möglichst gleichmäßig aufgeteilt (5 → 3 + 2). Bei `stats: false` passt `2` besser |
+| `newSymbol` | `"✨"` | Oben rechts am Pokémon, wenn es zum ersten Mal auf dem Spiegel ist. `""` = aus (die Liste wird trotzdem geführt) |
 
 Die Beschriftung der Werte-Tabelle richtet sich nach der **globalen** Sprache des Spiegels
 (`language` ganz oben in `config.js`), nicht nach der Modul-Einstellung.
@@ -245,8 +257,16 @@ teamSymbol: "⚔️"
 5. Die Datei auf den Pi in `~/MagicMirror/modules/MMM-DailyPokemon/data/` bringen
    (per `git push`/`git pull` oder z. B. WinSCP).
 
-Am Spiegel erscheint unter dem Pokémon z. B. **A** 👍 **K** 💖 + Pokéball. Wer das Pokémon nicht
-bewertet hat, wird nicht angezeigt; hat es niemand bewertet, fällt die Zeile ganz weg.
+Am Spiegel erscheint unter dem Pokémon z. B. **K** 💖 + Pokéball · **Y** 👍. Wer das Pokémon nicht
+bewertet hat, wird nicht angezeigt und bekommt auch keinen Platz; hat es niemand bewertet, fällt
+die Zeile ganz weg. Verteilung:
+
+| Personen mit Eintrag | Anzeige |
+|---|---|
+| 1 | mittig |
+| 2 | links und rechts, `•` dazwischen |
+| 3 und mehr | erste links, letzte rechts, die übrigen mit gleichen Abständen dazwischen, `•` in jeder Lücke. Mehr als `ratingsPerRow` (4) → mehrere Zeilen |
+
 Ein Tippfehler in `bewertung` wird als Text angezeigt, damit er auffällt.
 
 Gut zu wissen:
@@ -259,3 +279,28 @@ Gut zu wissen:
 - Neue Pokémon erschienen? `node vorlage/vorlage-erstellen.js` erzeugt die Vorlage neu.
   In euren eigenen CSVs fehlen die neuen Nummern dann einfach (= nicht bewertet), bis ihr die
   Zeilen aus der neuen Vorlage unten anhängt.
+
+---
+
+## 9. Gesehen-Liste und ✨
+
+Bei jedem angezeigten Pokémon fragt der Browser den node_helper („`MARK_SEEN`“), sobald der Name
+in der eingestellten Sprache da ist. Der node_helper
+([node_helper.js `markSeen()`](node_helper.js)) schaut in `data/already_seen.csv` nach:
+
+- **Nummer noch nicht drin:** neue Zeile anhängen, Antwort „neu“ → ✨ oben rechts am Pokémon.
+- **Schon drin:** nichts ändern, kein ✨.
+
+```csv
+nr;name;first_seen
+69;Knofensa;2026-11-18 14:30
+```
+
+- Gezählt wird jedes Pokémon, das auf dem Spiegel war, auch per `?nr=` von der Kommandozeile.
+  Soll eines wieder „neu“ sein: Zeile löschen (Excel geht, auch als ANSI gespeichert).
+  Ganze Datei löschen = alles wieder neu.
+- Die Datei wird beim ersten Pokémon automatisch angelegt (UTF-8 mit BOM, damit Excel Umlaute
+  richtig zeigt). Sie liegt im `ratingsFolder`, zählt aber nicht als Person.
+- Die Antwort geht genau an das Pokémon, für das gefragt wurde. Wird zwischendurch schon das
+  nächste gewürfelt oder schaut ein zweiter Browser auf den Spiegel, landet kein ✨ am falschen Pokémon.
+- Position und Größe des ✨: `#poke-new` in [MMM-DailyPokemon.css](MMM-DailyPokemon.css).
